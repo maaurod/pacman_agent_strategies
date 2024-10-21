@@ -163,12 +163,60 @@ def depth_first_search(problem):
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    # Define useful variables and objects
+    queue = util.Queue()
+    visited = set()
+
+    state = problem.get_start_state()
+    queue.push(SearchNode(None, (state, None, 0)))
+    
+    # Loop until the queue is empty or the goal is reached
+    while not queue.is_empty():
+        # Pop node from the queue's top
+        current_node = queue.pop()
+
+        # Check if goal state
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path() # Path reconstruction
+
+        # Else, add to visited
+        visited.add(current_node.state)
+
+        # Add successors to stack
+        successors = problem.get_successors(current_node.state)
+        for successor in successors:
+            # Check if node has been visited
+            if successor[0] not in visited:
+                queue.push(SearchNode(current_node, successor)) # Push SearchNode class object to the queue
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    # Define useful variables and objects
+    queue = util.PriorityQueue()
+    visited = set()
+
+    state = problem.get_start_state()
+    queue.push(SearchNode(None, (state, None, 0)), 0)
+    
+    # Loop until the queue is empty or the goal is reached
+    while not queue.is_empty():
+        # Pop node from queue's top
+        current_node = queue.pop()
+
+        # Check if goal state
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path() # Path reconstruction
+
+        # Else, add to visited
+        visited.add(current_node.state)
+
+        # Add successors to queue
+        successors = problem.get_successors(current_node.state)
+        for successor in successors:
+            # Check if node has been visited
+            if successor[0] not in visited:
+                queue.update(SearchNode(current_node, successor), current_node.cost + successor[2]) # Update SearchNode class object to queue
 
 def null_heuristic(state, problem=None):
     """
