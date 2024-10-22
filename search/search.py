@@ -229,28 +229,44 @@ def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
     
+    # We define priority queue data structure
     priority_queue = util.PriorityQueue()
-    visited = set()
+    # Dictionary to keep track of visited nodes (and minimum costs as these are not accessible from the priority queue structure)
+    found_costs = dict()
 
+    # Initialize search
     initial_state = problem.get_start_state()
+    found_costs[initial_state] = 0
     priority_queue.push(SearchNode(None, (initial_state, None, 0)), 0)
 
     while not priority_queue.is_empty():
+        # Expand node
         expanded_node = priority_queue.pop()
+        expanded_state = expanded_node.state
 
-        if problem.is_goal_state(expanded_node.state):
+        if problem.is_goal_state(expanded_state):
             return expanded_node.get_path()
-        
-        visited.add(expanded_node.state)
-
+                
         # Add nodes to frontier (priority queue)
-        successors = problem.get_successors(expanded_node.state)
+        successors = problem.get_successors(expanded_state)
         for successor_info in successors:
-            if successor_info[0] not in visited:
-                f_n = successor_info[2] + heuristic(successor_info[0], problem)
-                succesor_node = SearchNode(expanded_node, (successor_info[0], successor_info[1], f_n))
-                priority_queue.push(succesor_node, succesor_node.cost)
+            new_state, new_action, new_cost = successor_info
+            
+            # Current cost to reach the successor node
+            cost_to_new_state = found_costs[expanded_state] + new_cost
+            
+            if new_state not in found_costs or cost_to_new_state < found_costs[new_state]:
+                # Heuristic cost to reach the goal from the successor node
+                h_n = heuristic(new_state, problem)
+                # A* cost function
+                f_n = cost_to_new_state + h_n
 
+                found_costs[new_state] = cost_to_new_state
+                new_node = SearchNode(expanded_node, (new_state, new_action, cost_to_new_state)) 
+                priority_queue.update(new_node, f_n)
+
+    return None
+    
 
 # Abbreviations
 bfs = breadth_first_search
