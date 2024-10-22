@@ -67,14 +67,35 @@ class ReflexAgent(Agent):
         to create a masterful evaluation function.
         """
         # Useful information you can extract from a GameState (pacman.py)
-        successor_game_state = current_game_state.generate_pacman_successor(action)
-        new_pos = successor_game_state.get_pacman_position()
-        new_food = successor_game_state.get_food()
-        new_ghost_states = successor_game_state.get_ghost_states()
-        new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]
+        food_right_now = current_game_state.get_food().as_list()
+        new_game_state = current_game_state.generate_pacman_successor(action)
+        new_pos = new_game_state.get_pacman_position()
+        # Distance to closest (CURRENT) food
+        distances = [manhattan_distance(new_pos, x) for x in food_right_now]
+        min_distance = min(distances) + 0.00001 if distances else 0.00001 # Avoid division by zero
+
+        new_food = new_game_state.get_food()
+        # Distance to closest (NEW) food
+        new_food_coordinates = new_food.as_list() 
+        new_distances = [manhattan_distance(new_pos, x) for x in new_food_coordinates]
+        new_min_distance = min(new_distances) - 0.01 if new_distances else -0.01 
+
+        new_ghost_states = new_game_state.get_ghost_states()
+        new_ghost_positions = [ghost.get_position() for ghost in new_ghost_states]
+        new_ghost_distances = [manhattan_distance(new_pos, x) for x in new_ghost_positions]
+        new_min_ghost_distance = min(new_ghost_distances) + 0.01 if new_ghost_distances else 0.01
+
+        # capsules = current_game_state.get_capsules()
+        # distances_to_capsules = [manhattan_distance(new_pos, x) for x in capsules]
+        # min_distance_to_capsules = min(distances_to_capsules) + 0.01 if distances_to_capsules else 0.01
+
+        new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]        
+        aux = 1 if min(new_scared_times) <= 0 else 0.25
+
+        score = (1 / min_distance) + (0.2 / new_min_distance) - (4/new_min_ghost_distance)*(aux)
+        # Add random noise to the score (exploration)
+        return score + random.random() * 1
         
-        "*** YOUR CODE HERE ***"
-        return successor_game_state.get_score()
 
 def score_evaluation_function(current_game_state):
     """
