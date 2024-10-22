@@ -258,7 +258,6 @@ def a_star_search(problem, heuristic=null_heuristic):
             if new_state not in found_costs or cost_to_new_state < found_costs[new_state]:
                 # Heuristic cost to reach the goal from the successor node
                 h_n = heuristic(new_state, problem)
-                # A* cost function
                 f_n = cost_to_new_state + h_n
 
                 found_costs[new_state] = cost_to_new_state
