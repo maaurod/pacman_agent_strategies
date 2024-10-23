@@ -157,7 +157,40 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        actual_depth = 0
+        _, action = self.max_value(game_state, actual_depth)
+        return action
+    
+    def game_terminal(self, game_state, actual_depth):
+        return self.depth == actual_depth or game_state.is_win() or game_state.is_lose()
+    
+    def max_value(self, game_state, actual_depth):
+        if self.game_terminal(game_state, actual_depth):
+            return self.evaluation_function(game_state), None
+        v = float('-inf')
+        move = None
+        for action in game_state.get_legal_actions(self.index):
+            successor_state = game_state.generate_successor(self.index, action)
+            v2, _ = self.min_value(1, successor_state, actual_depth)  # Go to the first ghost
+            if v2 > v:
+                v, move = v2, action
+        return v, move
+
+    def min_value(self, agent_index, game_state, actual_depth):
+        if self.game_terminal(game_state, actual_depth):
+            return self.evaluation_function(game_state), None
+        v = float('+inf')
+        move = None
+        for action in game_state.get_legal_actions(agent_index):
+            successor_state = game_state.generate_successor(agent_index, action)
+            if agent_index == game_state.get_num_agents() - 1:  # Last ghost moves, Pacman's turn next
+                depth_passed = actual_depth + 1
+                v2, _ = self.max_value(successor_state, depth_passed)  # Increment depth after all agents moved
+            else:
+                v2, _ = self.min_value(agent_index + 1, successor_state, actual_depth)  # Go to the next ghost
+            if v2 < v:
+                v, move = v2, action
+        return v, move
     
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
