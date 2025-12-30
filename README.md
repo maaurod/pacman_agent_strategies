@@ -265,14 +265,4 @@ These projects are based on the Pac-Man AI projects developed at **UC Berkeley**
 
 ## 🤝 Contributing
 
-This is an educational repository. Feel free to:
-- Improve documentation
-- Add comments to code
-- Create additional test cases
-- Optimize existing implementations
-
-**Note**: If you're a student taking a course that uses these projects, make sure to follow your course's academic integrity policies.
-
----
-
-**Happy AI Learning! 🎓🤖**
+This is an educational repository. Is it done for the course Autonomous Systems at UPF EMAI course.
