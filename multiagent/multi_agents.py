@@ -66,34 +66,39 @@ class ReflexAgent(Agent):
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
-        # Useful information you can extract from a GameState (pacman.py)
+        # Extract information from current game state
         food_right_now = current_game_state.get_food().as_list()
+        # Generate the successor state after taking the proposed action
         new_game_state = current_game_state.generate_pacman_successor(action)
         new_pos = new_game_state.get_pacman_position()
-        # Distance to closest (CURRENT) food
+        
+        # Calculate distance to closest food in CURRENT state
         distances = [manhattan_distance(new_pos, x) for x in food_right_now]
-        min_distance = min(distances) + 0.00001 if distances else 0.00001 # Avoid division by zero
+        min_distance = min(distances) + 0.00001 if distances else 0.00001  # Avoid division by zero
 
+        # Calculate distance to closest food in NEW state (after action)
         new_food = new_game_state.get_food()
-        # Distance to closest (NEW) food
         new_food_coordinates = new_food.as_list() 
         new_distances = [manhattan_distance(new_pos, x) for x in new_food_coordinates]
         new_min_distance = min(new_distances) - 0.01 if new_distances else -0.01 
 
+        # Get ghost information from successor state
         new_ghost_states = new_game_state.get_ghost_states()
         new_ghost_positions = [ghost.get_position() for ghost in new_ghost_states]
         new_ghost_distances = [manhattan_distance(new_pos, x) for x in new_ghost_positions]
         new_min_ghost_distance = min(new_ghost_distances) + 0.01 if new_ghost_distances else 0.01
 
-        # capsules = current_game_state.get_capsules()
-        # distances_to_capsules = [manhattan_distance(new_pos, x) for x in capsules]
-        # min_distance_to_capsules = min(distances_to_capsules) + 0.01 if distances_to_capsules else 0.01
-
+        # Check if ghosts are scared (after eating power pellet)
         new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]        
+        # Reduce ghost avoidance when ghosts are scared
         aux = 1 if min(new_scared_times) <= 0 else 0.25
 
+        # Evaluation formula:
+        # - Prefer states closer to food (1/distance -> higher score when closer)
+        # - Avoid ghosts (negative term weighted by distance)
+        # - Adjust ghost penalty based on whether they're scared
         score = (1 / min_distance) + (0.2 / new_min_distance) - (4/new_min_ghost_distance)*(aux)
-        # Add random noise to the score (exploration)
+        # Add random noise for exploration
         return score + random.random() * 1
         
 
@@ -156,38 +161,58 @@ class MinimaxAgent(MultiAgentSearchAgent):
         game_state.is_lose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
+        # Start minimax search from depth 0 (root)
         actual_depth = 0
         _, action = self.max_value(game_state, actual_depth)
         return action
     
     def game_terminal(self, game_state, actual_depth):
+        """Check if we've reached a terminal state (leaf node in game tree)"""
         return self.depth == actual_depth or game_state.is_win() or game_state.is_lose()
     
     def max_value(self, game_state, actual_depth):
+        """Pacman's turn - maximize the score"""
+        # Base case: return evaluation if terminal state
         if self.game_terminal(game_state, actual_depth):
             return self.evaluation_function(game_state), None
+        
+        # Initialize to worst possible value for max
         v = float('-inf')
         move = None
+        
+        # Try all possible actions for Pacman
         for action in game_state.get_legal_actions(self.index):
             successor_state = game_state.generate_successor(self.index, action)
+            # After Pacman moves, it's the first ghost's turn
             v2, _ = self.min_value(1, successor_state, actual_depth)  # Go to the first ghost
+            # Update if we found a better move
             if v2 > v:
                 v, move = v2, action
         return v, move
 
     def min_value(self, agent_index, game_state, actual_depth):
+        """Ghost's turn - minimize Pacman's score"""
+        # Base case: return evaluation if terminal state
         if self.game_terminal(game_state, actual_depth):
             return self.evaluation_function(game_state), None
+        
+        # Initialize to worst possible value for min
         v = float('+inf')
         move = None
+        
+        # Try all possible actions for this ghost
         for action in game_state.get_legal_actions(agent_index):
             successor_state = game_state.generate_successor(agent_index, action)
+            
+            # If this is the last ghost, next turn is Pacman's (increment depth)
             if agent_index == game_state.get_num_agents() - 1:  # Last ghost moves, Pacman's turn next
                 depth_passed = actual_depth + 1
                 v2, _ = self.max_value(successor_state, depth_passed)  # Increment depth after all agents moved
             else:
+                # Otherwise, it's the next ghost's turn (same depth)
                 v2, _ = self.min_value(agent_index + 1, successor_state, actual_depth)  # Go to the next ghost
+            
+            # Update if we found a move that leads to lower Pacman score
             if v2 < v:
                 v, move = v2, action
         return v, move
@@ -202,45 +227,70 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluation_function
         """
-        "*** YOUR CODE HERE ***"
+        # Start alpha-beta pruning search from depth 0
         actual_depth = 0
+        # Initialize alpha (best max score) and beta (best min score)
         _, action = self.max_value(game_state, actual_depth, float('-inf'), float('+inf'))
         return action
 
     def game_terminal(self, game_state, actual_depth):
+        """Check if we've reached a terminal state (leaf node in game tree)"""
         return self.depth == actual_depth or game_state.is_win() or game_state.is_lose()
     
     def max_value(self, game_state, actual_depth, alpha, beta):
+        """Pacman's turn - maximize score with alpha-beta pruning"""
+        # Base case: return evaluation if terminal state
         if self.game_terminal(game_state, actual_depth):
             return self.evaluation_function(game_state), None
+        
+        # Initialize to worst possible value for max
         v = float('-inf')
         move = None
+        
+        # Try all possible actions for Pacman
         for action in game_state.get_legal_actions(self.index):
             successor_state = game_state.generate_successor(self.index, action)
-            v2, _ = self.min_value(1, successor_state, actual_depth, alpha, beta)  # Go to the first ghost
+            # After Pacman moves, it's the first ghost's turn
+            v2, _ = self.min_value(1, successor_state, actual_depth, alpha, beta)
+            # Update if we found a better move
             if v2 > v:
                 v, move = v2, action
+            # Prune if current best is >= beta (min player won't choose this path)
             if v > beta:
                 return v, move
+            # Update alpha (best score max player can guarantee)
             alpha = max(alpha, v)
         return v, move
 
     def min_value(self, agent_index, game_state, actual_depth, alpha, beta):
+        """Ghost's turn - minimize Pacman's score with alpha-beta pruning"""
+        # Base case: return evaluation if terminal state
         if self.game_terminal(game_state, actual_depth):
             return self.evaluation_function(game_state), None
+        
+        # Initialize to worst possible value for min
         v = float('+inf')
         move = None
+        
+        # Try all possible actions for this ghost
         for action in game_state.get_legal_actions(agent_index):
             successor_state = game_state.generate_successor(agent_index, action)
+            
+            # If this is the last ghost, next turn is Pacman's (increment depth)
             if agent_index == game_state.get_num_agents() - 1:  # Last ghost moves, Pacman's turn next
                 depth_passed = actual_depth + 1
-                v2, _ = self.max_value(successor_state, depth_passed, alpha, beta)  # Increment depth after all agents moved
+                v2, _ = self.max_value(successor_state, depth_passed, alpha, beta)
             else:
-                v2, _ = self.min_value(agent_index + 1, successor_state, actual_depth, alpha, beta)  # Go to the next ghost
+                # Otherwise, it's the next ghost's turn (same depth)
+                v2, _ = self.min_value(agent_index + 1, successor_state, actual_depth, alpha, beta)
+            
+            # Update if we found a move that leads to lower Pacman score
             if v2 < v:
                 v, move = v2, action
+            # Prune if current best is <= alpha (max player won't choose this path)
             if v < alpha:
                 return v, move
+            # Update beta (best score min player can guarantee)
             beta = min(beta, v)
         return v, move
 

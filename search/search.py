@@ -133,96 +133,104 @@ def depth_first_search(problem):
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
     """
 
-    # Define useful variables and objects
+    # Initialize stack (LIFO) for depth-first traversal
     stack = util.Stack()
+    # Keep track of visited states to avoid revisiting (graph search)
     visited = set()
 
+    # Create root node with starting state
     state = problem.get_start_state()
     stack.push(SearchNode(None, (state, None, 0)))
     
-    # Loop until the stack is empty or the goal is reached
+    # Main search loop - continue until stack is empty or goal found
     while not stack.is_empty():
-        # Pop node from stack's top
+        # Get the most recently added node (LIFO behavior)
         current_node = stack.pop()
 
-        # Check if goal state
+        # Goal test - return path if we've reached the goal
         if problem.is_goal_state(current_node.state):
-            return current_node.get_path() # Path reconstruction
+            return current_node.get_path()  # Reconstruct and return path from root to goal
 
-        # Else, add to visited
+        # Mark current state as visited to prevent cycles
         visited.add(current_node.state)
 
-        # Add successors to stack
+        # Expand current node - get all possible next states
         successors = problem.get_successors(current_node.state)
         for successor in successors:
-            # Check if node has been visited
+            # Only add unvisited successors to avoid infinite loops
             if successor[0] not in visited:
-                stack.push(SearchNode(current_node, successor)) # Push SearchNode class object to stack
+                stack.push(SearchNode(current_node, successor))  # Create node with parent link for path reconstruction
 
 
 
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
-    # Define useful variables and objects
+    # Initialize queue (FIFO) for breadth-first traversal
     queue = util.Queue()
+    # Track states we've already encountered
     found = set()
 
+    # Create root node with starting state
     state = problem.get_start_state()
-    queue.push(SearchNode(None, (state, None, 0)))  # Inicializa el nodo raíz
-    # No se añade el estado inicial a 'found' aquí
+    queue.push(SearchNode(None, (state, None, 0)))  # Initialize root node
+    # Note: We don't add the initial state to 'found' yet - we do it when expanding
 
-    # Loop until the queue is empty or the goal is reached
+    # Main search loop - explore level by level
     while not queue.is_empty():
-        # Pop node from the queue's top
+        # Get the oldest node in queue (FIFO behavior)
         current_node = queue.pop()
         
-        # Check if goal state
+        # Goal test - return path if we've reached the goal
         if problem.is_goal_state(current_node.state):
-            return current_node.get_path()  # Path reconstruction
+            return current_node.get_path()  # Reconstruct and return path from root to goal
         
-        # Add the current node to the visited set AFTER popping it from the queue
+        # Mark as visited only when expanding (not when adding to queue)
+        # This ensures we find the shortest path
         if current_node.state not in found:
-            found.add(current_node.state)  # Añadirlo a 'found' cuando se va a expandir
+            found.add(current_node.state)  # Add to visited set when expanding
 
-            # Add successors to queue
+            # Expand current node - add all unvisited successors to queue
             successors = problem.get_successors(current_node.state)
             for successor in successors:
                 if successor[0] not in found:
-                    queue.push(SearchNode(current_node, successor))  # Añadir el sucesor a la cola
+                    queue.push(SearchNode(current_node, successor))  # Add successor to back of queue
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-     # We define priority queue data structure
+    # Initialize priority queue - nodes ordered by path cost (g(n))
     priority_queue = util.PriorityQueue()
-    # Dictionary to keep track of visited nodes (and minimum costs as these are not accessible from the priority queue structure)
+    # Dictionary to track the minimum cost to reach each state
+    # (PriorityQueue doesn't provide direct access to stored costs)
     found_costs = dict()
 
-    # Initialize search
+    # Initialize search with root node
     initial_state = problem.get_start_state()
-    found_costs[initial_state] = 0
+    found_costs[initial_state] = 0  # Cost to reach start is 0
     priority_queue.push(SearchNode(None, (initial_state, None, 0)), 0)
 
+    # Main search loop - always expand lowest-cost node
     while not priority_queue.is_empty():
-        # Expand node
+        # Pop node with lowest path cost
         expanded_node = priority_queue.pop()
         expanded_state = expanded_node.state
 
+        # Goal test - return path if we've reached the goal
         if problem.is_goal_state(expanded_state):
             return expanded_node.get_path()
                 
-        # Add nodes to frontier (priority queue)
+        # Expand current node - process all successors
         successors = problem.get_successors(expanded_state)
         for successor_info in successors:
             new_state, new_action, new_cost = successor_info
             
-            # Current cost to reach the successor node
+            # Calculate total cost from start to this successor
             cost_to_new_state = found_costs[expanded_state] + new_cost
             
+            # Add or update if we found a cheaper path to this state
             if new_state not in found_costs or cost_to_new_state < found_costs[new_state]:
                 found_costs[new_state] = cost_to_new_state
                 new_node = SearchNode(expanded_node, (new_state, new_action, cost_to_new_state)) 
-                priority_queue.update(new_node, cost_to_new_state)
+                priority_queue.update(new_node, cost_to_new_state)  # Update priority queue with new/better path
     return None
 
 def null_heuristic(state, problem=None):
@@ -234,42 +242,44 @@ def null_heuristic(state, problem=None):
 
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    
-    # We define priority queue data structure
+    # Initialize priority queue - nodes ordered by f(n) = g(n) + h(n)
     priority_queue = util.PriorityQueue()
-    # Dictionary to keep track of visited nodes (and minimum costs as these are not accessible from the priority queue structure)
+    # Dictionary to track the minimum path cost (g(n)) to reach each state
     found_costs = dict()
 
-    # Initialize search
+    # Initialize search with root node
     initial_state = problem.get_start_state()
-    found_costs[initial_state] = 0
+    found_costs[initial_state] = 0  # g(start) = 0
     priority_queue.push(SearchNode(None, (initial_state, None, 0)), 0)
 
+    # Main search loop - always expand node with lowest f(n) = g(n) + h(n)
     while not priority_queue.is_empty():
-        # Expand node
+        # Pop node with lowest estimated total cost (f = g + h)
         expanded_node = priority_queue.pop()
         expanded_state = expanded_node.state
 
+        # Goal test - return path if we've reached the goal
         if problem.is_goal_state(expanded_state):
             return expanded_node.get_path()
                 
-        # Add nodes to frontier (priority queue)
+        # Expand current node - process all successors
         successors = problem.get_successors(expanded_state)
         for successor_info in successors:
             new_state, new_action, new_cost = successor_info
             
-            # Current cost to reach the successor node
+            # Calculate g(n): actual cost from start to this successor
             cost_to_new_state = found_costs[expanded_state] + new_cost
             
+            # Add or update if we found a cheaper path to this state
             if new_state not in found_costs or cost_to_new_state < found_costs[new_state]:
-                # Heuristic cost to reach the goal from the successor node
+                # Calculate h(n): heuristic estimate of cost from successor to goal
                 h_n = heuristic(new_state, problem)
+                # Calculate f(n): total estimated cost from start to goal through this node
                 f_n = cost_to_new_state + h_n
 
-                found_costs[new_state] = cost_to_new_state
+                found_costs[new_state] = cost_to_new_state  # Store g(n)
                 new_node = SearchNode(expanded_node, (new_state, new_action, cost_to_new_state)) 
-                priority_queue.update(new_node, f_n)
+                priority_queue.update(new_node, f_n)  # Priority by f(n) = g(n) + h(n)
 
     return None
     
